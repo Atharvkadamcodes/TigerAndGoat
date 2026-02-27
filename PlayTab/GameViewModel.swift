@@ -11,22 +11,36 @@ class GameViewModel: ObservableObject {
     @Published var goatsKilled = 0
     @Published var selectedPiece: Piece? = nil
     @Published var validMoves: [Int] = []
-    
-    private var undoStack: [GameStateSnapshot] = []
     @Published var config = GameConfiguration()
     
+    private var undoStack: [GameStateSnapshot] = []
+    private let hapticSuccess = UINotificationFeedbackGenerator()
+    private let hapticImpact = UIImpactFeedbackGenerator(style: .heavy)
+    private var aiTask: Task<Void, Never>?
+
+    // MARK: - Thematic Naming Logic
     var topPlayerName: String {
-        config.mode == .multiplayer ? config.p1Name : (config.playerRoleVsAI == .goat ? "Computer (Tiger)" : "Computer (Goat)")
+        if config.mode == .multiplayer {
+            return topPlayerRole == .tiger ? "Tiger" : "Goat"
+        } else {
+            return config.playerRoleVsAI == .goat ? "Computer (Tiger)" : "Computer (Goat)"
+        }
     }
+    
     var bottomPlayerName: String {
-        config.mode == .multiplayer ? config.p2Name : "You"
+        if config.mode == .multiplayer {
+            let bottomRole: Player = topPlayerRole == .tiger ? .goat : .tiger
+            return bottomRole == .tiger ? "Tiger" : "Goat"
+        } else {
+            let myRoleStr = config.playerRoleVsAI == .tiger ? "Tiger" : "Goat"
+            return "You (\(myRoleStr))"
+        }
     }
+
     var topPlayerRole: Player {
         config.mode == .multiplayer ? (config.p1Role == .goat ? .goat : .tiger) : (config.playerRoleVsAI == .goat ? .tiger : .goat)
     }
     
-    private let haptic = UIImpactFeedbackGenerator(style: .heavy)
-    private var aiTask: Task<Void, Never>?
     private var isAITurn: Bool {
         config.mode == .vsComputer && currentPlayer != (config.playerRoleVsAI == .tiger ? .tiger : .goat)
     }
@@ -36,9 +50,9 @@ class GameViewModel: ObservableObject {
         undoStack.removeAll()
         goatsPlaced = 0; goatsKilled = 0; currentPlayer = .goat; gameState = .placingGoats; selectedPiece = nil; validMoves = []
         setupSelectedBoard()
-        if config.mode == .vsComputer && config.playerRoleVsAI == .tiger { checkAITurn() }
+        if isAITurn { checkAITurn() }
     }
-    
+
     func undoLastMove() {
         guard config.allowUndo, let lastState = undoStack.popLast() else { return }
         aiTask?.cancel()
@@ -54,7 +68,7 @@ class GameViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Board Setup
+    // MARK: - Board Setup Logic
     private func setupSelectedBoard() {
         switch config.selectedBoard {
         case .simple: setupSimpleBoard()
@@ -65,79 +79,19 @@ class GameViewModel: ObservableObject {
 
     private func setupSimpleBoard() {
         nodes = [
-            BoardNode(id: 0, position: CGPoint(x:0.5, y:0.2), edges: [Edge(to:1, jumpNode: nil), Edge(to:2, jumpNode: nil), Edge(to:3, jumpNode: nil)]),
-            BoardNode(id: 1, position: CGPoint(x:0.3, y:0.5), edges: [Edge(to:0, jumpNode: nil), Edge(to:3, jumpNode: nil), Edge(to:4, jumpNode: nil)]),
-            BoardNode(id: 2, position: CGPoint(x:0.7, y:0.5), edges: [Edge(to:0, jumpNode: nil), Edge(to:3, jumpNode: nil), Edge(to:5, jumpNode: nil)]),
-            BoardNode(id: 3, position: CGPoint(x:0.5, y:0.5), edges: [Edge(to:0, jumpNode: nil), Edge(to:1, jumpNode: nil), Edge(to:2, jumpNode: nil), Edge(to:4, jumpNode: nil), Edge(to:5, jumpNode: nil)]),
-            BoardNode(id: 4, position: CGPoint(x:0.5, y:0.8), edges: [Edge(to:1, jumpNode: nil), Edge(to:3, jumpNode: nil)]),
-            BoardNode(id: 5, position: CGPoint(x:0.7, y:0.8), edges: [Edge(to:2, jumpNode: nil), Edge(to:3, jumpNode: nil)])
+            BoardNode(id: 0, position: CGPoint(x: 0.5, y: 0.15), edges: [Edge(to: 1, jumpNode: 4), Edge(to: 2, jumpNode: 5), Edge(to: 3, jumpNode: 6)]),
+            BoardNode(id: 1, position: CGPoint(x: 0.35, y: 0.40), edges: [Edge(to: 0, jumpNode: nil), Edge(to: 2, jumpNode: 3), Edge(to: 4, jumpNode: 7)]),
+            BoardNode(id: 2, position: CGPoint(x: 0.5, y: 0.40), edges: [Edge(to: 0, jumpNode: nil), Edge(to: 1, jumpNode: nil), Edge(to: 3, jumpNode: nil), Edge(to: 5, jumpNode: 8)]),
+            BoardNode(id: 3, position: CGPoint(x: 0.65, y: 0.40), edges: [Edge(to: 0, jumpNode: nil), Edge(to: 2, jumpNode: 1), Edge(to: 6, jumpNode: 9)]),
+            BoardNode(id: 4, position: CGPoint(x: 0.20, y: 0.65), edges: [Edge(to: 1, jumpNode: 0), Edge(to: 5, jumpNode: 6), Edge(to: 7, jumpNode: nil)]),
+            BoardNode(id: 5, position: CGPoint(x: 0.5, y: 0.65), edges: [Edge(to: 2, jumpNode: 0), Edge(to: 4, jumpNode: nil), Edge(to: 6, jumpNode: nil), Edge(to: 8, jumpNode: nil)]),
+            BoardNode(id: 6, position: CGPoint(x: 0.80, y: 0.65), edges: [Edge(to: 3, jumpNode: 0), Edge(to: 5, jumpNode: 4), Edge(to: 9, jumpNode: nil)]),
+            BoardNode(id: 7, position: CGPoint(x: 0.05, y: 0.90), edges: [Edge(to: 4, jumpNode: 1), Edge(to: 8, jumpNode: 9)]),
+            BoardNode(id: 8, position: CGPoint(x: 0.5, y: 0.90), edges: [Edge(to: 7, jumpNode: nil), Edge(to: 5, jumpNode: 2), Edge(to: 9, jumpNode: nil)]),
+            BoardNode(id: 9, position: CGPoint(x: 0.95, y: 0.90), edges: [Edge(to: 8, jumpNode: 7), Edge(to: 6, jumpNode: 3)])
         ]
         pieces = [Piece(type: .tiger, nodeId: 0)]
     }
-    
-    // MARK: - LARGE BOARD (5 Tigers, 20 Goats)
-    // MARK: - LARGE BOARD (4 Tigers, 20 Goats - 5x5 Grid)
-        private func setupComplexBoard() {
-            var generatedNodes: [BoardNode] = []
-            let rows = 5
-            let cols = 5
-            
-            // Dynamically spacing the grid across the screen to make a perfect square
-            let xSpacing = 0.8 / CGFloat(cols - 1) // Spreads from X: 0.1 to 0.9
-            // Calculate Y spacing to keep it visually square based on the screen aspect ratio
-            let ySpacing = 0.6 / CGFloat(rows - 1) // Spreads from Y: 0.2 to 0.8
-
-            for r in 0..<rows {
-                for c in 0..<cols {
-                    let id = r * cols + c
-                    let x = 0.1 + CGFloat(c) * xSpacing
-                    let y = 0.2 + CGFloat(r) * ySpacing
-                    var edges: [Edge] = []
-
-                    // Helper function: Checks if a row/col exists and returns its ID
-                    func getNodeId(_ targetRow: Int, _ targetCol: Int) -> Int? {
-                        if targetRow >= 0 && targetRow < rows && targetCol >= 0 && targetCol < cols {
-                            return targetRow * cols + targetCol
-                        }
-                        return nil
-                    }
-
-                    // All 8 possible move directions (Up, Down, Left, Right + 4 Diagonals)
-                    let directions = [
-                        (-1, 0), (1, 0), (0, -1), (0, 1),
-                        (-1, -1), (-1, 1), (1, -1), (1, 1)
-                    ]
-
-                    // Traditional rule: Diagonals are only active on alternating "even" intersections
-                    let hasDiagonals = (r + c) % 2 == 0
-
-                    for (dr, dc) in directions {
-                        let isDiagonal = abs(dr) == 1 && abs(dc) == 1
-                        
-                        // Skip diagonal connections if this specific node shouldn't have them
-                        if isDiagonal && !hasDiagonals { continue }
-
-                        // If an adjacent node exists in this direction, map the edge and check for a jump!
-                        if let adjId = getNodeId(r + dr, c + dc) {
-                            let jumpId = getNodeId(r + (dr * 2), c + (dc * 2))
-                            edges.append(Edge(to: adjId, jumpNode: jumpId))
-                        }
-                    }
-                    
-                    generatedNodes.append(BoardNode(id: id, position: CGPoint(x: x, y: y), edges: edges))
-                }
-            }
-            
-            nodes = generatedNodes
-            
-            // Place the 4 Tigers exactly in the corners of the 5x5 grid
-            pieces = [
-                Piece(type: .tiger, nodeId: 0),   // Top Left corner (r:0, c:0)
-                Piece(type: .tiger, nodeId: 4),   // Top Right corner (r:0, c:4)
-                Piece(type: .tiger, nodeId: 20),  // Bottom Left corner (r:4, c:0)
-                Piece(type: .tiger, nodeId: 24)   // Bottom Right corner (r:4, c:4)
-            ]
-        }
 
     private func setupStandardBoard() {
         nodes = [
@@ -171,14 +125,36 @@ class GameViewModel: ObservableObject {
         ]
         pieces = [Piece(type: .tiger, nodeId: 0), Piece(type: .tiger, nodeId: 2), Piece(type: .tiger, nodeId: 3)]
     }
-    
-    // MARK: - Interaction Logic
-    func handleNodeTap(nodeId: Int) {
-        guard !isAITurn || config.mode == .multiplayer else { return }
-        _executeNodeTap(nodeId: nodeId)
+
+    private func setupComplexBoard() {
+        var generatedNodes: [BoardNode] = []
+        let rows = 5, cols = 5
+        let xSpacing = 0.8 / CGFloat(cols - 1), ySpacing = 0.8 / CGFloat(rows - 1)
+        for r in 0..<rows {
+            for c in 0..<cols {
+                let id = r * cols + c
+                let x = 0.1 + CGFloat(c) * xSpacing, y = 0.1 + CGFloat(r) * ySpacing
+                var edges: [Edge] = []
+                func getNodeId(_ tR: Int, _ tC: Int) -> Int? {
+                    (tR >= 0 && tR < rows && tC >= 0 && tC < cols) ? tR * cols + tC : nil
+                }
+                let directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+                for (dr, dc) in directions {
+                    if (abs(dr) == 1 && abs(dc) == 1) && (r + c) % 2 != 0 { continue }
+                    if let adjId = getNodeId(r + dr, c + dc) {
+                        edges.append(Edge(to: adjId, jumpNode: getNodeId(r + (dr * 2), c + (dc * 2))))
+                    }
+                }
+                generatedNodes.append(BoardNode(id: id, position: CGPoint(x: x, y: y), edges: edges))
+            }
+        }
+        nodes = generatedNodes
+        pieces = [Piece(type: .tiger, nodeId: 0), Piece(type: .tiger, nodeId: 4), Piece(type: .tiger, nodeId: 20), Piece(type: .tiger, nodeId: 24)]
     }
     
-    private func _executeNodeTap(nodeId: Int) {
+    // MARK: - Game Interactions
+    func handleNodeTap(nodeId: Int) {
+        guard !isAITurn || config.mode == .multiplayer else { return }
         if gameState == .placingGoats && currentPlayer == .goat { placeGoat(at: nodeId) }
         else if validMoves.contains(nodeId), let piece = selectedPiece { executeMove(piece: piece, to: nodeId) }
         else { selectPiece(at: nodeId) }
@@ -191,6 +167,7 @@ class GameViewModel: ObservableObject {
         goatsPlaced += 1
         if goatsPlaced >= config.selectedBoard.goatCount { gameState = .playing }
         currentPlayer = .tiger
+        checkWinConditions()
         checkAITurn()
     }
     
@@ -198,10 +175,9 @@ class GameViewModel: ObservableObject {
         guard let piece = pieces.first(where: { $0.nodeId == nodeId }), piece.type == currentPlayer else {
             selectedPiece = nil; validMoves = []; return
         }
-        selectedPiece = piece; calculateValidMoves(for: piece)
+        selectedPiece = piece
+        validMoves = getValidMoves(for: piece)
     }
-    
-    private func calculateValidMoves(for piece: Piece) { validMoves = getValidMoves(for: piece) }
     
     private func getValidMoves(for piece: Piece) -> [Int] {
         guard let node = nodes.first(where: { $0.id == piece.nodeId }) else { return [] }
@@ -234,18 +210,45 @@ class GameViewModel: ObservableObject {
         guard let startNode = nodes.first(where: { $0.id == startId }), let edge = startNode.edges.first(where: { $0.jumpNode == endId }) else { return }
         pieces.removeAll { $0.nodeId == edge.to && $0.type == .goat }
         goatsKilled += 1
-        haptic.impactOccurred()
+        hapticImpact.impactOccurred()
     }
     
     private func checkWinConditions() {
-        if goatsKilled >= config.selectedBoard.tigerCount + 2 { gameState = .tigerWon }
+        if goatsKilled >= config.selectedBoard.tigerCount + 2 {
+            triggerEndGame(winner: .tigerWon); return
+        }
+        
+        // CHANGED: Goats can win by trapping tigers even during the placing phase!
+        if gameState == .playing || gameState == .placingGoats {
+            let tigers = pieces.filter { $0.type == .tiger }
+            let totalAvailableTigerMoves = tigers.reduce(0) { count, piece in
+                count + getValidMoves(for: piece).count
+            }
+            if totalAvailableTigerMoves == 0 { triggerEndGame(winner: .goatWon) }
+        }
     }
-    
-    // MARK: - AI Logic
+
+    // ADDED: Helper to check if a specific piece has zero moves (for the red border)
+    func isPieceTrapped(_ piece: Piece) -> Bool {
+        guard piece.type == .tiger else { return false }
+        return getValidMoves(for: piece).isEmpty
+    }
+
+    private func triggerEndGame(winner: GameState) {
+        gameState = winner
+        hapticSuccess.notificationOccurred(.success)
+        SoundManager.shared.playSound(named: winner == .tigerWon ? "tiger_win" : "goat_win")
+        aiTask?.cancel()
+    }
+
+    // MARK: - AI decision Engine
     private func checkAITurn() {
         if isAITurn && (gameState == .playing || gameState == .placingGoats) {
             aiTask?.cancel()
-            aiTask = Task { try? await Task.sleep(nanoseconds: 1_000_000_000); if !Task.isCancelled { await executeAIMove() } }
+            aiTask = Task {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if !Task.isCancelled { await executeAIMove() }
+            }
         }
     }
     
@@ -254,39 +257,16 @@ class GameViewModel: ObservableObject {
     }
     
     private func placeGoatAsAI() {
-            let emptyNodes = nodes.filter { node in !pieces.contains(where: { $0.nodeId == node.id }) }
-            guard let randomEmptyNode = emptyNodes.randomElement() else { return }
-            
-            // FIX: Tell the game engine to place the goat directly, bypassing UI clicks
-            placeGoat(at: randomEmptyNode.id)
-        }
-        
-        private func movePieceAsAI() {
-            let aiPieces = pieces.filter { $0.type == currentPlayer }
-            var allPossibleMoves: [(piece: Piece, target: Int)] = []
-            for piece in aiPieces {
-                let moves = getValidMoves(for: piece)
-                for move in moves { allPossibleMoves.append((piece, move)) }
-            }
-            guard !allPossibleMoves.isEmpty else { return }
-            
-            let chosenMove: (piece: Piece, target: Int)
-            switch config.difficulty {
-            case .easy: chosenMove = allPossibleMoves.randomElement()!
-            case .medium:
-                if currentPlayer == .tiger, let captureMove = findCaptureMove(in: allPossibleMoves) { chosenMove = captureMove }
-                else { chosenMove = allPossibleMoves.randomElement()! }
-            case .hard: chosenMove = allPossibleMoves.randomElement()! // Placeholder for Minimax
-            }
-            
-            // FIX: Execute the move directly into the math engine!
-            executeMove(piece: chosenMove.piece, to: chosenMove.target)
-        }
+        let emptyNodes = nodes.filter { node in !pieces.contains(where: { $0.nodeId == node.id }) }
+        if let randomEmptyNode = emptyNodes.randomElement() { placeGoat(at: randomEmptyNode.id) }
+    }
     
-    private func findCaptureMove(in moves: [(piece: Piece, target: Int)]) -> (piece: Piece, target: Int)? {
-        for move in moves {
-            if let startNode = nodes.first(where: { $0.id == move.piece.nodeId }), let _ = startNode.edges.first(where: { $0.jumpNode == move.target }) { return move }
-        }
-        return nil
+    private func movePieceAsAI() {
+        let aiPieces = pieces.filter { $0.type == currentPlayer }
+        var allMoves: [(piece: Piece, target: Int)] = []
+        for p in aiPieces { for m in getValidMoves(for: p) { allMoves.append((p, m)) } }
+        guard !allMoves.isEmpty else { return }
+        let chosen = allMoves.randomElement()!
+        executeMove(piece: chosen.piece, to: chosen.target)
     }
 }

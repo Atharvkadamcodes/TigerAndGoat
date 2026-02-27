@@ -3,32 +3,44 @@ import SwiftUI
 struct PlayTabView: View {
     @StateObject private var viewModel = GameViewModel()
     @State private var navigationPath = NavigationPath()
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
-    let parchment = Color(red: 0.95, green: 0.92, blue: 0.85)
     let darkStone = Color(red: 0.15, green: 0.18, blue: 0.15)
-    let bronze = Color(red: 0.45, green: 0.35, blue: 0.20)
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
-                parchment.ignoresSafeArea()
-                VStack(spacing: 50) {
-                    Text("Aadu Puli Aatam").font(.custom("Georgia", size: 40)).fontWeight(.bold).foregroundColor(darkStone)
-                        .padding(.top, 60)
+                AnimatedGrassBackground()
+                
+                VStack(spacing: (horizontalSizeClass == .compact ? 40 : 80)) {
+                    // Responsive Header
+                    Text("Tiger And Goat")
+                        .font(.system(size: horizontalSizeClass == .compact ? 42 : 64, weight: .heavy, design: .serif))
+                        .foregroundColor(darkStone)
+                        .padding(.top, horizontalSizeClass == .compact ? 60 : 100)
                     
-                    VStack(spacing: 25) {
-                        Button { navigationPath.append("MultiplayerSetup") } label: {
-                            MenuButtonView(title: "Multiplayer", icon: "person.2.fill", color: bronze)
+                    VStack(spacing: 20) {
+                        Button {
+                            navigationPath.append("MultiplayerSetup")
+                        } label: {
+                            GameModeRowView(title: "Multiplayer", subtitle: "Play locally with a friend", iconName: "person.2.fill", iconColor: .blue)
                         }
+                        .buttonStyle(AppStoreCardButtonStyle())
                         
-                        Button { navigationPath.append("ComputerSetup") } label: {
-                            MenuButtonView(title: "Vs Computer", icon: "cpu.fill", color: darkStone)
+                        Button {
+                            navigationPath.append("ComputerSetup")
+                        } label: {
+                            GameModeRowView(title: "Vs Computer", subtitle: "Challenge the AI", iconName: "cpu.fill", iconColor: .orange)
                         }
+                        .buttonStyle(AppStoreCardButtonStyle())
                     }
-                    .padding(.horizontal, 30)
+                    .frame(maxWidth: horizontalSizeClass == .compact ? 400 : 500)
+                    .padding(.horizontal, 24)
+                    
                     Spacer()
                 }
             }
+            .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "MultiplayerSetup": MultiplayerSetupView(viewModel: viewModel, path: $navigationPath)
@@ -41,141 +53,251 @@ struct PlayTabView: View {
     }
 }
 
-struct MenuButtonView: View {
-    let title: String; let icon: String; let color: Color
-    var body: some View {
-        HStack {
-            Image(systemName: icon).font(.title).frame(width: 50)
-            Text(title).font(.headline)
-            Spacer()
-            Image(systemName: "chevron.right")
-        }
-        .padding().foregroundColor(.white).background(color).cornerRadius(16).shadow(radius: 5)
-    }
-}
-
-struct GridSelectionView: View {
-    @Binding var selectedBoard: BoardType
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("Select Board").font(.headline).padding(.leading)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    ForEach(BoardType.allCases) { board in
-                        VStack {
-                            Image(board.imageName)
-                                .resizable().scaledToFit().frame(height: 120)
-                                .background(Color.gray.opacity(0.2)).cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(selectedBoard == board ? Color.blue : Color.clear, lineWidth: 3))
-                            Text(board.rawValue).font(.caption).fontWeight(.semibold)
-                        }
-                        .onTapGesture { selectedBoard = board }
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-        .padding(.vertical)
-    }
-}
-
+// MARK: - Setup Screens
 struct MultiplayerSetupView: View {
     @ObservedObject var viewModel: GameViewModel
     @Binding var path: NavigationPath
-    let parchment = Color(red: 0.95, green: 0.92, blue: 0.85)
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         ZStack {
-            parchment.ignoresSafeArea()
+            AnimatedGrassBackground()
             ScrollView {
-                VStack(spacing: 25) {
-                    GridSelectionView(selectedBoard: $viewModel.config.selectedBoard)
-                    
-                    GroupBox(label: Text("Player Names")) {
-                        TextField("Player 1 (Top)", text: $viewModel.config.p1Name).textFieldStyle(.roundedBorder)
-                        TextField("Player 2 (Bottom)", text: $viewModel.config.p2Name).textFieldStyle(.roundedBorder)
+                VStack(spacing: (horizontalSizeClass == .compact ? 24 : 40)) {
+                    VStack(spacing: 32) {
+                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard) // Board at Top
+                        
+                        Divider()
+                        
+                        Toggle(isOn: $viewModel.config.allowUndo) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Allow 'Take Move Back'")
+                                    .font(horizontalSizeClass == .compact ? .headline : .title2)
+                                Text("Players can undo their last move")
+                                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding().background(Color.white.opacity(0.5)).cornerRadius(16)
+                        
+                        Button(action: {
+                            viewModel.config.mode = .multiplayer
+                            viewModel.startGame()
+                            path.append("ActiveGame")
+                        }) {
+                            Text("START MATCH")
+                                .font(horizontalSizeClass == .compact ? .headline : .title2)
+                                .fontWeight(.black).foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 60)
+                                .background(Capsule().fill(Color.orange))
+                        }
                     }
-                    
-                    GroupBox(label: Text("\(viewModel.config.p1Name) Plays As")) {
-                        Picker("Role", selection: $viewModel.config.p1Role) {
-                            Text("Goat (Defender)").tag(PlayerSide.goat)
-                            Text("Tiger (Predator)").tag(PlayerSide.tiger)
-                        }.pickerStyle(.segmented)
-                    }
-                    
-                    Toggle("Allow 'Take Move Back'", isOn: $viewModel.config.allowUndo)
-                        .padding().background(Color.white.opacity(0.5)).cornerRadius(12)
-                    
-                    Button(action: {
-                        viewModel.config.mode = .multiplayer
-                        viewModel.startGame()
-                        path.append("ActiveGame")
-                    }) {
-                        Text("Start Multiplayer Game").font(.headline).foregroundColor(.white).padding()
-                            .frame(maxWidth: .infinity).background(Color(red: 0.45, green: 0.35, blue: 0.20)).cornerRadius(12)
-                    }
-                }.padding()
+                    .padding(horizontalSizeClass == .compact ? 20 : 40)
+                    .background(.regularMaterial).cornerRadius(32)
+                    .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 700)
+                    .padding(.horizontal, 24).padding(.top, 40)
+                }
+                .padding(.bottom, 100)
             }
         }
-        .navigationTitle("Multiplayer Setup")
+        .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
     }
 }
 
 struct ComputerSetupView: View {
     @ObservedObject var viewModel: GameViewModel
     @Binding var path: NavigationPath
-    let parchment = Color(red: 0.95, green: 0.92, blue: 0.85)
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         ZStack {
-            parchment.ignoresSafeArea()
+            AnimatedGrassBackground()
             ScrollView {
-                VStack(spacing: 25) {
-                    GridSelectionView(selectedBoard: $viewModel.config.selectedBoard)
-                    
-                    VStack(alignment: .leading) {
-                        Text("Play As").font(.headline).padding(.leading)
-                        HStack(spacing: 20) {
-                            RoleSelectButton(role: .goat, icon: "goat_piece", selectedRole: $viewModel.config.playerRoleVsAI)
-                            RoleSelectButton(role: .tiger, icon: "tiger_piece", selectedRole: $viewModel.config.playerRoleVsAI)
-                        }.padding(.horizontal)
+                VStack(spacing: (horizontalSizeClass == .compact ? 24 : 40)) {
+                    VStack(spacing: 32) {
+                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard) // Board at Top
+                        
+                        Divider()
+                        
+                        // Side Selection
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Choose Your Side")
+                                .font(horizontalSizeClass == .compact ? .headline : .system(size: 28, weight: .bold))
+                            HStack(spacing: 20) {
+                                RoleButton(title: "Tiger", role: .tiger, isSelected: viewModel.config.playerRoleVsAI == .tiger) {
+                                    viewModel.config.playerRoleVsAI = .tiger
+                                }
+                                RoleButton(title: "Goat", role: .goat, isSelected: viewModel.config.playerRoleVsAI == .goat) {
+                                    viewModel.config.playerRoleVsAI = .goat
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        // Difficulty Selection
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Difficulty")
+                                .font(horizontalSizeClass == .compact ? .headline : .system(size: 28, weight: .bold))
+                            Picker("Difficulty", selection: $viewModel.config.difficulty) {
+                                ForEach(Difficulty.allCases) { level in
+                                    Text(level.rawValue).tag(level)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                        
+                        Divider()
+                        
+                        Toggle(isOn: $viewModel.config.allowUndo) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Allow 'Take Move Back'")
+                                    .font(horizontalSizeClass == .compact ? .headline : .title2)
+                                Text("Recommended for new players")
+                                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding().background(Color.white.opacity(0.5)).cornerRadius(16)
+                        
+                        Button(action: {
+                            viewModel.config.mode = .vsComputer
+                            viewModel.startGame()
+                            path.append("ActiveGame")
+                        }) {
+                            Text("CHALLENGE AI")
+                                .font(horizontalSizeClass == .compact ? .headline : .title2)
+                                .fontWeight(.black).foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 60)
+                                .background(Capsule().fill(Color.orange))
+                        }
                     }
-                    
-                    GroupBox(label: Text("Difficulty")) {
-                        Picker("Difficulty", selection: $viewModel.config.difficulty) {
-                            ForEach(Difficulty.allCases) { Text($0.rawValue).tag($0) }
-                        }.pickerStyle(.segmented)
-                    }
-                    
-                    Toggle("Allow 'Take Move Back'", isOn: $viewModel.config.allowUndo)
-                        .padding().background(Color.white.opacity(0.5)).cornerRadius(12)
-                    
-                    Button(action: {
-                        viewModel.config.mode = .vsComputer
-                        viewModel.startGame()
-                        path.append("ActiveGame")
-                    }) {
-                        Text("Start Game vs AI").font(.headline).foregroundColor(.white).padding()
-                            .frame(maxWidth: .infinity).background(Color(red: 0.15, green: 0.18, blue: 0.15)).cornerRadius(12)
-                    }
-                }.padding()
+                    .padding(horizontalSizeClass == .compact ? 20 : 40)
+                    .background(.regularMaterial).cornerRadius(32)
+                    .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 700)
+                    .padding(.horizontal, 24).padding(.top, 40)
+                }
+                .padding(.bottom, 100)
             }
         }
-        .navigationTitle("Computer Setup")
+        .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
     }
 }
 
-struct RoleSelectButton: View {
-    let role: PlayerSide; let icon: String; @Binding var selectedRole: PlayerSide
+// MARK: - Grid Components
+struct GridSelectionView: View {
+    @Binding var selectedBoard: BoardType
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     var body: some View {
-        VStack {
-            Image(icon).resizable().scaledToFit().frame(width: 60, height: 60)
+        VStack(alignment: .leading, spacing: horizontalSizeClass == .compact ? 20 : 30) {
+            Text("Select Board")
+                .font(horizontalSizeClass == .compact ? .headline : .system(size: 34, weight: .bold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, horizontalSizeClass == .compact ? 24 : 0)
+
+            if horizontalSizeClass == .compact {
+                // iPhone: Horizontal Paging with Dots
+                TabView(selection: $selectedBoard) {
+                    ForEach(BoardType.allCases) { board in
+                        BoardSelectionCard(board: board, isSelected: selectedBoard == board)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 40)
+                            .tag(board)
+                    }
+                }
+                .frame(height: 320) // Adjusted height for images
+                .tabViewStyle(.page(indexDisplayMode: .always))
+            } else {
+                // iPad: Side-by-Side Grid
+                HStack(spacing: 24) {
+                    ForEach(BoardType.allCases) { board in
+                        BoardSelectionCard(board: board, isSelected: selectedBoard == board)
+                            .onTapGesture {
+                                withAnimation(.spring()) {
+                                    selectedBoard = board
+                                }
+                            }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Board Selection Card with Image Support
+struct BoardSelectionCard: View {
+    let board: BoardType
+    let isSelected: Bool
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // 1. The Grid Image
+            Image(board.imageName) // Matches imageName in GameModels.swift
+                .resizable()
+                .scaledToFit()
+                .frame(height: horizontalSizeClass == .compact ? 150 : 220) // Taller for iPad
                 .padding(10)
-                .background(selectedRole == role ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(selectedRole == role ? Color.blue : Color.clear, lineWidth: 2))
-            Text(role == .goat ? "Goat" : "Tiger").font(.caption)
-        }.onTapGesture { selectedRole = role }
+                .shadow(color: .black.opacity(0.1), radius: 5, y: 5)
+            
+            // 2. The Board Info
+            VStack(spacing: 6) {
+                Text(board.rawValue.components(separatedBy: " (")[0])
+                    .font(horizontalSizeClass == .compact ? .headline : .system(size: 30, weight: .bold)) // Modified: 26 -> 30
+                
+                Text("\(board.tigerCount) Tigers • \(board.goatCount) Goats")
+                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                    .foregroundColor(.secondary)
+            }
+            .padding(.bottom, 16)
+        }
+        .frame(maxWidth: .infinity)
+        .background(isSelected ? Color.blue.opacity(0.1) : Color.white.opacity(0.6))
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 4)
+        )
+        .shadow(color: .black.opacity(isSelected ? 0.1 : 0.05), radius: 15)
+        .scaleEffect(isSelected ? 1.05 : 1.0)
+    }
+}
+
+// MARK: - Helper Views
+struct RoleButton: View {
+    let title: String; let role: PlayerSide; let isSelected: Bool; let action: () -> Void
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 12) {
+                Image(role == .tiger ? "tiger_piece" : "goat_piece").resizable().scaledToFit().frame(width: horizontalSizeClass == .compact ? 50 : 80)
+                Text(title).font(horizontalSizeClass == .compact ? .subheadline : .title2).fontWeight(.bold) // Modified: .title3 -> .title2
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, horizontalSizeClass == .compact ? 16 : 32)
+            .background(isSelected ? Color.blue.opacity(0.2) : Color.white.opacity(0.4)).cornerRadius(16)
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(isSelected ? Color.blue : Color.clear, lineWidth: 3))
+        }.buttonStyle(.plain)
+    }
+}
+
+struct GameModeRowView: View {
+    let title: String; let subtitle: String; let iconName: String; let iconColor: Color
+    var body: some View {
+        HStack(spacing: 20) {
+            ZStack { Circle().fill(iconColor.opacity(0.2)).frame(width: 60, height: 60)
+                Image(systemName: iconName).font(.title2).fontWeight(.bold).foregroundColor(iconColor) }
+            VStack(alignment: .leading, spacing: 4) { Text(title).font(.title3).fontWeight(.bold).foregroundColor(.primary)
+                Text(subtitle).font(.subheadline).foregroundColor(.secondary) }
+            Spacer()
+            Image(systemName: "chevron.right").font(.title3).fontWeight(.semibold).foregroundColor(Color.secondary.opacity(0.5))
+        }.padding(16).background(.regularMaterial).clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+struct AppStoreCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
