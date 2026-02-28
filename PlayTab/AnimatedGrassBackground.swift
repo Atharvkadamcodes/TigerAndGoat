@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Main Background View
+
 struct AnimatedGrassBackground: View {
     let parchment = Color(red: 0.95, green: 0.92, blue: 0.85)
     let skyOrange = Color(red: 0.98, green: 0.75, blue: 0.45)
@@ -9,14 +9,14 @@ struct AnimatedGrassBackground: View {
         GeometryReader { geo in
             let isIPad = geo.size.width > 600
             
-            // Dynamically scale sizes based on the device screen
+            
             let grassHeight = isIPad ? 280.0 : 200.0
             let rockWidth = geo.size.width * 0.75
             let rockHeight = isIPad ? 300.0 : 200.0
             let tigerSize = isIPad ? 140.0 : 90.0
             
             ZStack {
-                // 1. Sky Gradient
+                
                 LinearGradient(
                     colors: [skyOrange, parchment],
                     startPoint: .top,
@@ -24,14 +24,14 @@ struct AnimatedGrassBackground: View {
                 )
                 .ignoresSafeArea()
                 
-                // 2. The Sun
+                
                 Circle()
                     .fill(Color(red: 1.0, green: 0.3, blue: 0.1).opacity(0.8))
                     .frame(width: isIPad ? 180 : 120)
                     .position(x: geo.size.width * 0.3, y: geo.size.height * 0.25)
                     .blur(radius: 10)
                 
-                // 3. Pride Rock & Tiger (Background)
+                
                 ZStack(alignment: .topLeading) {
                     PrideRockShape()
                         .fill(
@@ -43,9 +43,7 @@ struct AnimatedGrassBackground: View {
                         )
                         .shadow(color: .black.opacity(0.4), radius: 20, x: -10, y: 10)
                     
-                    // The Tiger - Now positioned exactly at the peak!
-                    // The Tiger - Moved a little bit back from the peak
-                    // The Tiger - Moved further back along the cliff
+                    
                                         Image("tigerlanding")
                                             .resizable()
                                             .scaledToFit()
@@ -55,11 +53,11 @@ struct AnimatedGrassBackground: View {
                                             .offset(x: isIPad ? 10 : 5, y: isIPad ? -65 : -40)
                 }
                 .frame(width: rockWidth, height: rockHeight)
-                // Anchor the rock relative to the bottom grass
+                
                 .position(x: geo.size.width - (rockWidth / 2) + 20,
                           y: geo.size.height - grassHeight - (rockHeight / 2) + 60)
                 
-                // 4. Foreground Grass Field
+                
                 VStack {
                     Spacer()
                     BottomGrassField()
@@ -67,7 +65,7 @@ struct AnimatedGrassBackground: View {
                 }
                 .ignoresSafeArea()
                 
-                // 5. Grazing Goats
+                
                 let goatSizeLg = isIPad ? 110.0 : 70.0
                 let goatSizeSm = isIPad ? 80.0 : 50.0
                 
@@ -88,7 +86,7 @@ struct AnimatedGrassBackground: View {
     }
 }
 
-// MARK: - Grazing Goat Component
+
 struct GrazingGoat: View {
     let size: CGFloat
     @State private var isGrazing = false
@@ -117,7 +115,7 @@ struct GrazingGoat: View {
     }
 }
 
-// MARK: - Custom Pride Rock Shape
+
 struct PrideRockShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -134,7 +132,7 @@ struct PrideRockShape: Shape {
     }
 }
 
-// MARK: - Fixed Full Width Grass Field
+
 struct BottomGrassField: View {
     var body: some View {
         ZStack {
@@ -195,7 +193,7 @@ struct BottomGrassField: View {
     }
 }
 
-// MARK: - Individual Grass Blade Component
+
 struct SwayingGrassBlade: View {
     @State private var isSwaying = false
     let color: Color; let height: CGFloat; let width: CGFloat
@@ -217,7 +215,7 @@ struct SwayingGrassBlade: View {
     }
 }
 
-// MARK: - Sharp Grass Shape
+
 struct SharpGrassBladeShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()

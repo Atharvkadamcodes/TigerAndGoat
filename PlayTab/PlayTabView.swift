@@ -10,10 +10,11 @@ struct PlayTabView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
+                // FIXED: Only the background should ignore the safe area
                 AnimatedGrassBackground()
+                    .ignoresSafeArea()
                 
                 VStack(spacing: (horizontalSizeClass == .compact ? 40 : 80)) {
-                    // Responsive Header
                     Text("Tiger And Goat")
                         .font(.system(size: horizontalSizeClass == .compact ? 42 : 64, weight: .heavy, design: .serif))
                         .foregroundColor(darkStone)
@@ -40,7 +41,7 @@ struct PlayTabView: View {
                     Spacer()
                 }
             }
-            .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
+            // REMOVED: The buggy .ignoresSafeArea(.all, edges: .leading)
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "MultiplayerSetup": MultiplayerSetupView(viewModel: viewModel, path: $navigationPath)
@@ -62,10 +63,12 @@ struct MultiplayerSetupView: View {
     var body: some View {
         ZStack {
             AnimatedGrassBackground()
+                .ignoresSafeArea() // Keeps the grass filling the screen
+            
             ScrollView {
                 VStack(spacing: (horizontalSizeClass == .compact ? 24 : 40)) {
                     VStack(spacing: 32) {
-                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard) // Board at Top
+                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard)
                         
                         Divider()
                         
@@ -74,7 +77,7 @@ struct MultiplayerSetupView: View {
                                 Text("Allow 'Take Move Back'")
                                     .font(horizontalSizeClass == .compact ? .headline : .title2)
                                 Text("Players can undo their last move")
-                                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                                    .font(horizontalSizeClass == .compact ? .caption : .headline)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -100,7 +103,10 @@ struct MultiplayerSetupView: View {
                 .padding(.bottom, 100)
             }
         }
-        .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
+        // FIX: Removes the "Back" text and leaves only the chevron
+        .toolbarRole(.editor)
+        // FIX: Removes the white bar when scrolling up
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 
@@ -112,14 +118,15 @@ struct ComputerSetupView: View {
     var body: some View {
         ZStack {
             AnimatedGrassBackground()
+                .ignoresSafeArea()
+            
             ScrollView {
                 VStack(spacing: (horizontalSizeClass == .compact ? 24 : 40)) {
                     VStack(spacing: 32) {
-                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard) // Board at Top
+                        GridSelectionView(selectedBoard: $viewModel.config.selectedBoard)
                         
                         Divider()
                         
-                        // Side Selection
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Choose Your Side")
                                 .font(horizontalSizeClass == .compact ? .headline : .system(size: 28, weight: .bold))
@@ -135,12 +142,11 @@ struct ComputerSetupView: View {
                         
                         Divider()
                         
-                        // Difficulty Selection
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Difficulty")
                                 .font(horizontalSizeClass == .compact ? .headline : .system(size: 28, weight: .bold))
                             Picker("Difficulty", selection: $viewModel.config.difficulty) {
-                                ForEach(Difficulty.allCases) { level in
+                                ForEach(Difficulty.allCases, id: \.self) { level in
                                     Text(level.rawValue).tag(level)
                                 }
                             }
@@ -154,7 +160,7 @@ struct ComputerSetupView: View {
                                 Text("Allow 'Take Move Back'")
                                     .font(horizontalSizeClass == .compact ? .headline : .title2)
                                 Text("Recommended for new players")
-                                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                                    .font(horizontalSizeClass == .compact ? .caption : .headline)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -180,9 +186,14 @@ struct ComputerSetupView: View {
                 .padding(.bottom, 100)
             }
         }
-        .ignoresSafeArea(.all, edges: .leading) // <-- ADDED HERE
+        // FIX: Removes the "Back" text and leaves only the chevron
+        .toolbarRole(.editor)
+        // FIX: Removes the white bar when scrolling up
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
+
+// ... Keep your GridSelectionView, BoardSelectionCard, RoleButton, GameModeRowView, and AppStoreCardButtonStyle exactly the same below this!
 
 // MARK: - Grid Components
 struct GridSelectionView: View {
@@ -197,21 +208,21 @@ struct GridSelectionView: View {
                 .padding(.horizontal, horizontalSizeClass == .compact ? 24 : 0)
 
             if horizontalSizeClass == .compact {
-                // iPhone: Horizontal Paging with Dots
                 TabView(selection: $selectedBoard) {
-                    ForEach(BoardType.allCases) { board in
+                    // ADDED: id: \.self to prevent crashes
+                    ForEach(BoardType.allCases, id: \.self) { board in
                         BoardSelectionCard(board: board, isSelected: selectedBoard == board)
                             .padding(.horizontal, 24)
                             .padding(.bottom, 40)
                             .tag(board)
                     }
                 }
-                .frame(height: 320) // Adjusted height for images
+                .frame(height: 320)
                 .tabViewStyle(.page(indexDisplayMode: .always))
             } else {
-                // iPad: Side-by-Side Grid
                 HStack(spacing: 24) {
-                    ForEach(BoardType.allCases) { board in
+                    // ADDED: id: \.self to prevent crashes
+                    ForEach(BoardType.allCases, id: \.self) { board in
                         BoardSelectionCard(board: board, isSelected: selectedBoard == board)
                             .onTapGesture {
                                 withAnimation(.spring()) {
@@ -225,7 +236,7 @@ struct GridSelectionView: View {
     }
 }
 
-// MARK: - Board Selection Card with Image Support
+
 struct BoardSelectionCard: View {
     let board: BoardType
     let isSelected: Bool
@@ -233,21 +244,20 @@ struct BoardSelectionCard: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            // 1. The Grid Image
-            Image(board.imageName) // Matches imageName in GameModels.swift
+    
+            Image(board.imageName)
                 .resizable()
                 .scaledToFit()
-                .frame(height: horizontalSizeClass == .compact ? 150 : 220) // Taller for iPad
+                .frame(height: horizontalSizeClass == .compact ? 150 : 220)
                 .padding(10)
                 .shadow(color: .black.opacity(0.1), radius: 5, y: 5)
             
-            // 2. The Board Info
             VStack(spacing: 6) {
                 Text(board.rawValue.components(separatedBy: " (")[0])
-                    .font(horizontalSizeClass == .compact ? .headline : .system(size: 30, weight: .bold)) // Modified: 26 -> 30
+                    .font(horizontalSizeClass == .compact ? .headline : .system(size: 30, weight: .bold))
                 
                 Text("\(board.tigerCount) Tigers • \(board.goatCount) Goats")
-                    .font(horizontalSizeClass == .compact ? .caption : .headline) // Modified: .body -> .headline
+                    .font(horizontalSizeClass == .compact ? .caption : .headline)
                     .foregroundColor(.secondary)
             }
             .padding(.bottom, 16)
@@ -264,7 +274,7 @@ struct BoardSelectionCard: View {
     }
 }
 
-// MARK: - Helper Views
+
 struct RoleButton: View {
     let title: String; let role: PlayerSide; let isSelected: Bool; let action: () -> Void
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -272,7 +282,7 @@ struct RoleButton: View {
         Button(action: action) {
             VStack(spacing: 12) {
                 Image(role == .tiger ? "tiger_piece" : "goat_piece").resizable().scaledToFit().frame(width: horizontalSizeClass == .compact ? 50 : 80)
-                Text(title).font(horizontalSizeClass == .compact ? .subheadline : .title2).fontWeight(.bold) // Modified: .title3 -> .title2
+                Text(title).font(horizontalSizeClass == .compact ? .subheadline : .title2).fontWeight(.bold)
             }
             .frame(maxWidth: .infinity).padding(.vertical, horizontalSizeClass == .compact ? 16 : 32)
             .background(isSelected ? Color.blue.opacity(0.2) : Color.white.opacity(0.4)).cornerRadius(16)

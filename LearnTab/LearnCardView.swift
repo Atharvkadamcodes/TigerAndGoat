@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct LearnCardView: View {
-    // ADDED: Environment variable to check for iPad
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var imageName: String
@@ -10,33 +9,38 @@ struct LearnCardView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Top Image Section
+          
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                // CHANGED: iPhone stays 140, iPad image stretches to 260 to make the card more square
-                .frame(height: horizontalSizeClass == .compact ? 140 : 260)
+                .frame(maxWidth: .infinity)
+               
+                .frame(height: horizontalSizeClass == .compact ? 140 : 200)
                 .clipped()
             
-            // Bottom Text Section
+        
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    // CHANGED: Slightly bigger font on iPad
                     .font(horizontalSizeClass == .compact ? .headline : .title3)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
+                    .lineLimit(2)
                 
                 Text(description)
-                    // CHANGED: Slightly bigger font on iPad
                     .font(horizontalSizeClass == .compact ? .subheadline : .body)
                     .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+                   
             }
-            // CHANGED: More padding inside the card on iPad
             .padding(horizontalSizeClass == .compact ? 16 : 24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+       
+            .background(Color(UIColor.secondarySystemGroupedBackground).opacity(0.7))
         }
         .background(.ultraThinMaterial)
-        .cornerRadius(16)
+
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
     }
 }
 

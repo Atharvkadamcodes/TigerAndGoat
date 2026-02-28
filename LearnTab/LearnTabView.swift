@@ -3,68 +3,65 @@ import SwiftUI
 struct LearnTabView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
-    // CHANGED: This adaptive grid automatically switches to 1 column when the sidebar opens!
     var columns: [GridItem] {
-        [GridItem(.adaptive(minimum: 320), spacing: 24)]
+        if horizontalSizeClass == .compact {
+            return [GridItem(.flexible())]
+        } else {
+            return [
+                GridItem(.flexible(), spacing: 24),
+                GridItem(.flexible(), spacing: 24)
+            ]
+        }
     }
     
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: horizontalSizeClass == .compact ? 24 : 100) {
+                VStack(alignment: .leading, spacing: horizontalSizeClass == .compact ? 32 : 60) {
                     
-                    // MARK: - About Section
                     VStack(alignment: .leading, spacing: 20) {
                         Text("About")
                             .font(.system(size: 28, weight: .bold, design: .serif))
-                            .padding(.horizontal)
                         
                         LazyVGrid(columns: columns, spacing: 24) {
-                            // First Card Link
                             NavigationLink(destination: MentalWorkoutDetailView()) {
                                 MentalWorkoutCard()
                             }
                             .buttonStyle(.plain)
                             
-                            // Second Card Link
                             NavigationLink(destination: AncientLegacyDetailView()) {
                                 AncientLegacyCard()
                             }
                             .buttonStyle(.plain)
                         }
-                        .padding(.horizontal)
                     }
+                    .padding(.horizontal, horizontalSizeClass == .compact ? 20 : 40)
                     
-                    // MARK: - Rules & Strategy Section
+                    
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Rules & Strategy")
                             .font(.system(size: 28, weight: .bold, design: .serif))
-                            .padding(.horizontal)
                         
                         LazyVGrid(columns: columns, spacing: 24) {
-                            
-                            // First Card: How to Play
                             NavigationLink(destination: HowToPlayDetailView()) {
                                 HowToPlayCard()
                             }
                             .buttonStyle(.plain)
                             
-                            // Second Card: Tricks & Tactics
                             NavigationLink(destination: TricksAndTacticsDetailView()) {
                                 TricksAndTacticsCard()
                             }
                             .buttonStyle(.plain)
-                            
                         }
-                        .padding(.horizontal)
                     }
+                    .padding(.horizontal, horizontalSizeClass == .compact ? 20 : 40)
                     
                 }
-                .padding(.vertical, horizontalSizeClass == .compact ? 24 : 60)
+                .padding(.vertical, horizontalSizeClass == .compact ? 24 : 40)
             }
-            .ignoresSafeArea(.all, edges: .leading) // <--- ADD THIS LINE HERE
-                        .background(Color(red: 0.98, green: 0.92, blue: 0.84).ignoresSafeArea())
-                        .navigationTitle("Learn")
+            // FIX: Removed .ignoresSafeArea(.all, edges: .leading)
+            .background(Color(red: 0.98, green: 0.92, blue: 0.84).ignoresSafeArea())
+            .navigationTitle("Learn")
         }
     }
 }

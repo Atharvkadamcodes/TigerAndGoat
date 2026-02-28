@@ -20,7 +20,7 @@ let package = Package(
             teamIdentifier: "GJ2YV3P6B4",
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .beachball),
+            appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.mint),
             supportedDeviceFamilies: [
                 .pad,
@@ -37,7 +37,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "AppModule",
-            path: "."
+            path: ".",
+            resources: [
+                .process("Resources")
+            ]
         )
     ],
     swiftLanguageVersions: [.version("6")]

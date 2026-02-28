@@ -1,11 +1,3 @@
-//
-//  AncientLegacyCard.swift
-//  Tiger And Goat
-//
-//  Created by Atharv on 27/02/26.
-//
-
-
 import SwiftUI
 
 struct AncientLegacyCard: View {

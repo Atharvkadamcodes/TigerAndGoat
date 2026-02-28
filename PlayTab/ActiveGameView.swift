@@ -5,7 +5,7 @@ struct ActiveGameView: View {
     @Binding var path: NavigationPath
     @Environment(\.dismiss) private var dismiss
     
-    // ADDED: State variable to control the restart alert
+    
     @State private var showingRestartAlert = false
     
     let parchment = Color(red: 0.95, green: 0.92, blue: 0.85)
@@ -14,9 +14,9 @@ struct ActiveGameView: View {
     
     var body: some View {
         ZStack {
-            // MARK: - MAIN GAME LAYER
+            
             VStack(spacing: 0) {
-                // 1. TOP CONTROL BAR
+            
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
@@ -38,7 +38,7 @@ struct ActiveGameView: View {
                         .padding(.trailing, 10)
                     }
                     
-                    // CHANGED: Now triggers the alert instead of instantly restarting
+                    
                     Button(action: { showingRestartAlert = true }) {
                         Image(systemName: "arrow.counterclockwise.circle.fill")
                             .font(.largeTitle)
@@ -50,17 +50,17 @@ struct ActiveGameView: View {
                 .padding(.bottom, 10)
                 .background(parchment)
                 
-                // 2. PLAYER INFO BARS
+                
                 PlayerInfoBar(role: viewModel.topPlayerRole, viewModel: viewModel, isTop: true)
 
-                // 3. THE GAME BOARD
+                
                 GeometryReader { geometry in
                     let boardSize = min(geometry.size.width, geometry.size.height) * 0.95
                     let pieceSize = boardSize * 0.065
                     let nodeSize = boardSize * 0.035
                     
                     ZStack {
-                        // Board Lines
+                        
                         Path { path in
                             for node in viewModel.nodes {
                                 let start = CGPoint(x: node.position.x * boardSize, y: node.position.y * boardSize)
@@ -73,7 +73,7 @@ struct ActiveGameView: View {
                             }
                         }.stroke(bronze, lineWidth: 3.0)
                         
-                        // Nodes
+                       
                         ForEach(viewModel.nodes) { node in
                             let pos = CGPoint(x: node.position.x * boardSize, y: node.position.y * boardSize)
                             Circle().fill(parchment).overlay(Circle().stroke(bronze, lineWidth: 2)).frame(width: nodeSize, height: nodeSize).position(pos)
@@ -84,15 +84,14 @@ struct ActiveGameView: View {
                             }
                         }
                         
-                        // Pieces
                         ForEach(viewModel.pieces) { piece in
                             if let node = viewModel.nodes.first(where: { $0.id == piece.nodeId }) {
                                 let pos = CGPoint(x: node.position.x * boardSize, y: node.position.y * boardSize)
                                 
-                                // ADDED: Check if this specific piece is trapped
+                                
                                 let isTrapped = viewModel.isPieceTrapped(piece)
                                 
-                                // CHANGED: Pass isTrapped to the PieceView
+                               
                                 PieceView(type: piece.type, isSelected: viewModel.selectedPiece?.id == piece.id, isTrapped: isTrapped, size: pieceSize)
                                     .position(pos).animation(.spring(response: 0.4, dampingFraction: 0.7), value: pos).allowsHitTesting(false)
                             }
@@ -105,14 +104,14 @@ struct ActiveGameView: View {
                 
                 PlayerInfoBar(role: viewModel.topPlayerRole == .goat ? .tiger : .goat, viewModel: viewModel, isTop: false)
             }
-            .blur(radius: isGameOver ? 8 : 0) // Soft blur for the victory layer
+            .blur(radius: isGameOver ? 8 : 0)
             
-            // MARK: - PREMIUM VICTORY POPUP
+            
             if isGameOver {
                 Color.black.opacity(0.4).ignoresSafeArea()
                 
                 VStack(spacing: 32) {
-                    // Animated Winner Icon
+                   
                     ZStack {
                         Circle()
                             .fill(viewModel.gameState == .tigerWon ? Color.orange.opacity(0.2) : Color.green.opacity(0.2))
@@ -185,7 +184,7 @@ struct ActiveGameView: View {
     }
 }
 
-// MARK: - THEMATIC PLAYER INFO BAR
+
 struct PlayerInfoBar: View {
     let role: Player
     @ObservedObject var viewModel: GameViewModel
@@ -226,7 +225,7 @@ struct PlayerInfoBar: View {
             
             Spacer()
             
-            // Numerical Scoring
+           
             VStack(alignment: .trailing, spacing: 2) {
                 Text(role == .goat ? "STRENGTH" : "KILLS")
                     .font(.system(size: 15, weight: .bold))
@@ -244,11 +243,11 @@ struct PlayerInfoBar: View {
     }
 }
 
-// MARK: - PREMIUM PIECE VIEW
+
 struct PieceView: View {
     let type: Player
     let isSelected: Bool
-    var isTrapped: Bool = false // ADDED: Defaults to false
+    var isTrapped: Bool = false
     let size: CGFloat
     
     var body: some View {
@@ -268,7 +267,7 @@ struct PieceView: View {
                 Circle()
                     .stroke(Color.blue, lineWidth: 3)
                     .frame(width: size * 1.2)
-            } else if isTrapped { // ADDED: Red border for trapped tigers
+            } else if isTrapped {
                 Circle()
                     .stroke(Color.red, lineWidth: 3)
                     .frame(width: size * 1.2)

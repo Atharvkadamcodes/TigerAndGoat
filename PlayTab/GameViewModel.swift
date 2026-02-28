@@ -18,7 +18,7 @@ class GameViewModel: ObservableObject {
     private let hapticImpact = UIImpactFeedbackGenerator(style: .heavy)
     private var aiTask: Task<Void, Never>?
 
-    // MARK: - Thematic Naming Logic
+
     var topPlayerName: String {
         if config.mode == .multiplayer {
             return topPlayerRole == .tiger ? "Tiger" : "Goat"
@@ -68,7 +68,6 @@ class GameViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Board Setup Logic
     private func setupSelectedBoard() {
         switch config.selectedBoard {
         case .simple: setupSimpleBoard()
@@ -152,7 +151,7 @@ class GameViewModel: ObservableObject {
         pieces = [Piece(type: .tiger, nodeId: 0), Piece(type: .tiger, nodeId: 4), Piece(type: .tiger, nodeId: 20), Piece(type: .tiger, nodeId: 24)]
     }
     
-    // MARK: - Game Interactions
+   
     func handleNodeTap(nodeId: Int) {
         guard !isAITurn || config.mode == .multiplayer else { return }
         if gameState == .placingGoats && currentPlayer == .goat { placeGoat(at: nodeId) }
@@ -239,7 +238,7 @@ class GameViewModel: ObservableObject {
         aiTask?.cancel()
     }
 
-    // MARK: - AI decision Engine
+   
     private func checkAITurn() {
         if isAITurn && (gameState == .playing || gameState == .placingGoats) {
             aiTask?.cancel()
@@ -253,33 +252,33 @@ class GameViewModel: ObservableObject {
     private func executeAIMove() async {
         let diff = config.difficulty
         
-        // 1. Easy Mode: Original Random Logic
+        
         if diff == .easy {
             if gameState == .placingGoats && currentPlayer == .goat { placeGoatAsAI() } else { movePieceAsAI() }
             return
         }
         
-        // 2. Medium & Hard: Powerful Minimax Logic
-        let depth = (diff == .medium) ? 2 : 4 // Hard looks 4 half-moves ahead!
+       
+        let depth = (diff == .medium) ? 2 : 4
         
-        // Capture a clean state to pass to the background thread
+       
         let initialState = AIBoardState(pieces: pieces, goatsPlaced: goatsPlaced, goatsKilled: goatsKilled, currentPlayer: currentPlayer)
         let nodesCopy = nodes
         let configCopy = config.selectedBoard
         let aiRole = currentPlayer
         
-        // Compute in background so UI doesn't freeze
+        
         let bestAction = await Task.detached(priority: .userInitiated) {
             return self.computeBestMove(state: initialState, depth: depth, nodes: nodesCopy, boardConfig: configCopy, aiRole: aiRole)
         }.value
         
-        // 3. Fallback if no moves found (should only happen if AI is already trapped)
+        
         guard let action = bestAction else {
             if gameState == .placingGoats && currentPlayer == .goat { placeGoatAsAI() } else { movePieceAsAI() }
             return
         }
         
-        // 4. Execute the mathematically perfect move
+        
         switch action {
         case .place(let nodeId):
             placeGoat(at: nodeId)
@@ -305,7 +304,7 @@ class GameViewModel: ObservableObject {
     }
 }
 
-// MARK: - Advanced Minimax AI Logic Models
+
 struct AIBoardState {
     var pieces: [Piece]
     var goatsPlaced: Int
@@ -320,7 +319,7 @@ enum AIAction {
 
 extension GameViewModel {
     
-    // Background-safe move generator
+    
     nonisolated private func getAIValidMoves(for piece: Piece, in state: AIBoardState, nodes: [BoardNode]) -> [Int] {
         guard let node = nodes.first(where: { $0.id == piece.nodeId }) else { return [] }
         var moves: [Int] = []
@@ -339,7 +338,7 @@ extension GameViewModel {
         return moves
     }
 
-    // Explores every possible future timeline
+    
     nonisolated private func generateNextStates(from state: AIBoardState, nodes: [BoardNode], boardConfig: BoardType) -> [(action: AIAction, state: AIBoardState)] {
         var nextStates: [(action: AIAction, state: AIBoardState)] = []
         
@@ -373,10 +372,10 @@ extension GameViewModel {
                 }
             }
         }
-        return nextStates.shuffled() // Shuffling prevents AI from repeating the exact same predictable pattern
+        return nextStates.shuffled()
     }
 
-    // Mathematical evaluation of who is winning
+   
     nonisolated private func evaluateAIState(state: AIBoardState, aiRole: Player, nodes: [BoardNode], boardConfig: BoardType) -> Int {
         let tigers = state.pieces.filter { $0.type == .tiger }
         let tigerMovesCount = tigers.reduce(0) { $0 + getAIValidMoves(for: $1, in: state, nodes: nodes).count }
@@ -388,16 +387,16 @@ extension GameViewModel {
             return aiRole == .goat ? 10000 : -10000
         }
         
-        var score = (state.goatsKilled * 1000) + (tigerMovesCount * 10)
+        let score = (state.goatsKilled * 1000) + (tigerMovesCount * 10)
         return aiRole == .tiger ? score : -score
     }
 
-    // The core Alpha-Beta Minimax algorithm
+    
     nonisolated private func minimax(state: AIBoardState, depth: Int, alpha: Int, beta: Int, maximizingPlayer: Bool, aiRole: Player, nodes: [BoardNode], boardConfig: BoardType) -> Int {
         let tigers = state.pieces.filter { $0.type == .tiger }
         let tigerMovesCount = tigers.reduce(0) { $0 + getAIValidMoves(for: $1, in: state, nodes: nodes).count }
         
-        // Depth addition ensures AI wins as fast as possible, and loses as slowly as possible
+        
         if state.goatsKilled >= boardConfig.tigerCount + 2 {
             return aiRole == .tiger ? 10000 + depth : -10000 - depth
         }
@@ -422,7 +421,7 @@ extension GameViewModel {
                 let eval = minimax(state: nextState, depth: depth - 1, alpha: currentAlpha, beta: currentBeta, maximizingPlayer: false, aiRole: aiRole, nodes: nodes, boardConfig: boardConfig)
                 maxEval = max(maxEval, eval)
                 currentAlpha = max(currentAlpha, eval)
-                if currentBeta <= currentAlpha { break } // Pruning
+                if currentBeta <= currentAlpha { break }
             }
             return maxEval
         } else {
@@ -431,13 +430,13 @@ extension GameViewModel {
                 let eval = minimax(state: nextState, depth: depth - 1, alpha: currentAlpha, beta: currentBeta, maximizingPlayer: true, aiRole: aiRole, nodes: nodes, boardConfig: boardConfig)
                 minEval = min(minEval, eval)
                 currentBeta = min(currentBeta, eval)
-                if currentBeta <= currentAlpha { break } // Pruning
+                if currentBeta <= currentAlpha { break }
             }
             return minEval
         }
     }
 
-    // Connects the algorithm to the app
+    
     nonisolated private func computeBestMove(state: AIBoardState, depth: Int, nodes: [BoardNode], boardConfig: BoardType, aiRole: Player) -> AIAction? {
         let nextStates = generateNextStates(from: state, nodes: nodes, boardConfig: boardConfig)
         if nextStates.isEmpty { return nil }
@@ -446,13 +445,13 @@ extension GameViewModel {
         var bestValue = -100000
         
         for (action, nextState) in nextStates {
-            // Instawin optimization: take the winning move instantly
+            
             if aiRole == .tiger && nextState.goatsKilled >= boardConfig.tigerCount + 2 { return action }
             let tigers = nextState.pieces.filter { $0.type == .tiger }
             let tigerMovesCount = tigers.reduce(0) { $0 + getAIValidMoves(for: $1, in: nextState, nodes: nodes).count }
             if aiRole == .goat && tigerMovesCount == 0 { return action }
 
-            // Evaluate opponent's best response
+            
             let value = minimax(state: nextState, depth: depth - 1, alpha: -100000, beta: 100000, maximizingPlayer: false, aiRole: aiRole, nodes: nodes, boardConfig: boardConfig)
             
             if value > bestValue {

@@ -1,14 +1,6 @@
-//
-//  Player.swift
-//  Tiger And Goat
-//
-//  Created by SDC-USER on 27/02/26.
-//
-
-
 import SwiftUI
 
-// MARK: - Core Game Math Models
+
 enum Player { case tiger, goat }
 enum GameState { case placingGoats, playing, tigerWon, goatWon }
 
@@ -29,16 +21,15 @@ struct BoardNode: Identifiable {
     let edges: [Edge]
 }
 
-// MARK: - Setup & Configuration Models
 enum BoardType: String, CaseIterable, Identifiable {
     case simple = "Small (1 Tiger, 5 Goats)"
     case standard = "Medium (3 Tigers, 15 Goats)"
-    case complex = "Large (4 Tigers, 20 Goats)" // Updated to 4 Tigers
+    case complex = "Large (4 Tigers, 20 Goats)"
     
     var id: String { self.rawValue }
     
     var tigerCount: Int {
-        switch self { case .simple: return 1; case .standard: return 3; case .complex: return 4 } // Updated to 4
+        switch self { case .simple: return 1; case .standard: return 3; case .complex: return 4 }
     }
     
     var goatCount: Int {
