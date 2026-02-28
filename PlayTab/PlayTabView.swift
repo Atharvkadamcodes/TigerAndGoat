@@ -30,7 +30,7 @@ struct PlayTabView: View {
                         Button {
                             navigationPath.append("ComputerSetup")
                         } label: {
-                            GameModeRowView(title: "Vs Computer", subtitle: "Challenge the AI", iconName: "cpu.fill", iconColor: .orange)
+                            GameModeRowView(title: "VS Computer", subtitle: "Challenge the Bot", iconName: "cpu.fill", iconColor: .orange)
                         }
                         .buttonStyle(AppStoreCardButtonStyle())
                     }
@@ -165,7 +165,7 @@ struct ComputerSetupView: View {
                             viewModel.startGame()
                             path.append("ActiveGame")
                         }) {
-                            Text("CHALLENGE AI")
+                            Text("CHALLENGE BOT")
                                 .font(horizontalSizeClass == .compact ? .headline : .title2)
                                 .fontWeight(.black).foregroundColor(.white)
                                 .frame(maxWidth: .infinity).frame(height: 60)

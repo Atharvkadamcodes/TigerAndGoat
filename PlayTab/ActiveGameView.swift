@@ -215,7 +215,7 @@ struct PlayerInfoBar: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(role == .tiger ? "THE HUNTERS" : "THE DEFENDERS")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.system(size: 15, weight: .black))
                     .tracking(1.2)
                     .foregroundColor(role == .tiger ? .red : .green)
                 
@@ -229,7 +229,7 @@ struct PlayerInfoBar: View {
             // Numerical Scoring
             VStack(alignment: .trailing, spacing: 2) {
                 Text(role == .goat ? "STRENGTH" : "KILLS")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(bronze.opacity(0.8))
                 
                 Text(role == .goat ? "\(viewModel.goatsPlaced)/\(viewModel.config.selectedBoard.goatCount)" : "\(viewModel.goatsKilled)/\(viewModel.config.selectedBoard.tigerCount + 2)")
