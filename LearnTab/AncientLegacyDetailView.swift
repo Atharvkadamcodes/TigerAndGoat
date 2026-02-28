@@ -31,7 +31,7 @@ struct AncientLegacyDetailView: View {
                 .padding(.vertical, horizontalSizeClass == .compact ? 24 : 60)
             }
         }
-        .navigationTitle("How to Play")
+        .navigationTitle("An Ancient Legacy")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarRole(.editor)
         .toolbarBackground(.hidden, for: .navigationBar)

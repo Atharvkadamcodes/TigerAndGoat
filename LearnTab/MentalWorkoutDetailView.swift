@@ -26,17 +26,17 @@ struct MentalWorkoutDetailView: View {
                         )
                     }
                 }
-                .frame(maxWidth: 800) // Apple standard readable width for iPad/Mac
+                .frame(maxWidth: 800)
                 .padding(.horizontal, horizontalSizeClass == .compact ? 24 : 60)
                 .padding(.vertical, horizontalSizeClass == .compact ? 24 : 60)
             }
-        } // ZStack closes here
-        // The modifiers MUST go right here, attached to the ZStack!
+        }
+        
         .navigationTitle("A Workout for the Mind")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarRole(.editor)
         .toolbarBackground(.hidden, for: .navigationBar)
-    } // Body closes here
+    }
 }
 
 #Preview {

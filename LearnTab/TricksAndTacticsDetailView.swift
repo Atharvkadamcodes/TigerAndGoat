@@ -67,7 +67,7 @@ struct TricksAndTacticsDetailView: View {
                 .padding(.bottom, 100)
             }
         }
-        .navigationTitle("How to Play")
+        .navigationTitle("Tricks & Tactics")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarRole(.editor)
         .toolbarBackground(.hidden, for: .navigationBar)

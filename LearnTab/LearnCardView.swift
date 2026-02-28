@@ -14,11 +14,9 @@ struct LearnCardView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(maxWidth: .infinity)
-               
                 .frame(height: horizontalSizeClass == .compact ? 140 : 200)
                 .clipped()
             
-        
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
                     .font(horizontalSizeClass == .compact ? .headline : .title3)
@@ -30,15 +28,14 @@ struct LearnCardView: View {
                     .font(horizontalSizeClass == .compact ? .subheadline : .body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
-                   
             }
             .padding(horizontalSizeClass == .compact ? 16 : 24)
             .frame(maxWidth: .infinity, alignment: .leading)
-       
-            .background(Color(UIColor.secondarySystemGroupedBackground).opacity(0.7))
+           
         }
+       
+        .background(Color(UIColor.secondarySystemGroupedBackground).opacity(0.7))
         .background(.ultraThinMaterial)
-
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
     }
